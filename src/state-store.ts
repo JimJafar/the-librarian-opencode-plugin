@@ -99,6 +99,14 @@ export interface WithLockOptions {
  * (random backoff to avoid lock-step retries) up to `timeoutMs`, then
  * steal the lock only if it is older than `staleMs` (a previous hook
  * crashed after acquiring without releasing).
+ *
+ * **Invariant:** `staleMs` MUST be strictly greater than the longest
+ * critical section any caller holds the lock across. The MCP client's
+ * default timeout is 15 s (mcp-client.ts DEFAULT_TIMEOUT_MS), and the
+ * session-bootstrap handler holds the lock across a `start_session`
+ * call. So we default `staleMs` to 30 s — 2× the MCP timeout — so a
+ * slow remote endpoint can't trigger lock theft mid-critical-section
+ * (which would silently double-attach the session).
  */
 export async function withLock<T>(
   dataDir: string,
@@ -106,7 +114,7 @@ export async function withLock<T>(
   options: WithLockOptions = {},
 ): Promise<T> {
   const timeoutMs = options.timeoutMs ?? 2000;
-  const staleMs = options.staleMs ?? 5000;
+  const staleMs = options.staleMs ?? 30000;
   await fs.promises.mkdir(dataDir, { recursive: true });
   const lock = lockPath(dataDir);
   const start = Date.now();

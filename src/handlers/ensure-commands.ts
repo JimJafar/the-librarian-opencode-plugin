@@ -1,5 +1,10 @@
 // src/handlers/ensure-commands.ts
 //
+// **Bun runtime only** — uses `import.meta.dir` for the default
+// source-dir resolution. opencode's plugin runtime is Bun, so this
+// is fine in production; just don't try to test this module under
+// Node without injecting `sourceDir` explicitly.
+//
 // Per Task 0 finding (notes/commands-discovery.md): opencode does NOT
 // auto-discover slash commands from inside an installed plugin's npm
 // package. To ship the seven `lib-session-*` verbs as slash commands

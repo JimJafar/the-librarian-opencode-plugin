@@ -144,6 +144,12 @@ function parseEndpoint(endpoint: string): URL {
     // capture URLs. The bearer header is the only acceptable carrier.
     throw new McpClientError("config", "Librarian endpoint must not include a query string");
   }
+  if (url.hash) {
+    // Fragments are technically client-side-only and HTTP clients strip
+    // them, but a `#token=…` URL would surprise users; reject for the
+    // same "no secrets in URLs" reason as embedded creds / query strings.
+    throw new McpClientError("config", "Librarian endpoint must not include a URL fragment");
+  }
   return url;
 }
 
