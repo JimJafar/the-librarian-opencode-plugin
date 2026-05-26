@@ -1,13 +1,7 @@
 #!/usr/bin/env bun
 // scripts/validate.ts
 // Pre-commit / pre-tag shape check. Exits 0 with `OK` on success;
-// exits 1 with a list of findings on failure. As the package grows
-// this fills in: manifest shape, commands/ frontmatter, byte-identity
-// between src/privacy-detector.ts and the canonical TS source,
-// Plugin export satisfies the type.
-//
-// For Task 2 it just gates the package.json basics so we have a real
-// CI step to evolve.
+// exits 1 with a list of findings on failure.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -69,8 +63,57 @@ function checkEntrypoint(): void {
   if (!/from "@opencode-ai\/plugin"/.test(body)) fail(`src/index.ts: must import types from @opencode-ai/plugin`);
 }
 
+function checkCommands(): void {
+  const dir = path.join(repoRoot, "commands");
+  const expected = [
+    "lib-session-start.md",
+    "lib-session-list.md",
+    "lib-session-resume.md",
+    "lib-session-checkpoint.md",
+    "lib-session-pause.md",
+    "lib-session-end.md",
+    "lib-session-search.md",
+  ];
+  for (const file of expected) {
+    const p = path.join(dir, file);
+    if (!fs.existsSync(p)) {
+      fail(`commands/${file}: missing — the seven /lib-session-* verbs are sacred (AGENTS.md §4)`);
+      continue;
+    }
+    const body = fs.readFileSync(p, "utf8");
+    if (!/^---\n[\s\S]*?description:[\s\S]*?\n---/.test(body)) {
+      fail(`commands/${file}: must start with YAML frontmatter including a description: field`);
+    }
+    if (/\.\.\/\.\.\//.test(body)) {
+      fail(`commands/${file}: contains relative paths (../../) — they won't resolve from inside node_modules; use absolute URLs`);
+    }
+  }
+}
+
+function checkPrivacyDetectorPortFidelity(): void {
+  // The privacy detector MUST stay byte-identical (modulo the file
+  // header) with the canonical TS source in the-librarian. If the
+  // canonical source isn't available locally (CI / where the sibling
+  // repo isn't checked out) we skip.
+  const canonical = "/Users/jim/code/the-librarian/integrations/shared/librarian-lifecycle/src/privacy.ts";
+  if (!fs.existsSync(canonical)) return;
+
+  const ours = fs.readFileSync(path.join(repoRoot, "src/privacy-detector.ts"), "utf8");
+  const stripped = ours.replace(/^[\s\S]*?(?=^\/\/ Privacy-marker detection)/m, "");
+  const canonicalBody = fs.readFileSync(canonical, "utf8");
+
+  if (stripped !== canonicalBody) {
+    fail(
+      `src/privacy-detector.ts: drift from canonical TS source. ` +
+        `If this is intentional, change the canonical source in the same PR.`,
+    );
+  }
+}
+
 checkPackageJson();
 checkEntrypoint();
+checkCommands();
+checkPrivacyDetectorPortFidelity();
 
 if (errors.length === 0) {
   console.log("OK");
