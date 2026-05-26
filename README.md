@@ -66,8 +66,11 @@ export LIBRARIAN_AGENT_TOKEN="<your-token>"
 ```
 
 Restart opencode. On the first `session.created` the plugin writes the
-seven `lib-session-*.md` files to `~/.config/opencode/commands/` — they
-appear in the `/` slash-command picker immediately.
+seven `lib-session-*.md` files to `~/.config/opencode/commands/`.
+opencode scans command files at startup, so the verbs appear in the
+`/` slash-command picker on the **next** opencode launch (one extra
+restart after first install). After that they're available on every
+launch.
 
 ## Configure (environment variables)
 
@@ -183,7 +186,7 @@ bun install
 bun run typecheck         # tsc --noEmit, strict
 bun test                  # 80+ tests via bun:test
 bun run validate          # package.json + entrypoint + commands shape
-bun run smoke             # mock-Librarian end-to-end, all 5 handlers
+bun run smoke             # mock-Librarian end-to-end, 6 scenarios across 4 handlers
 ```
 
 TypeScript runs native; Bun is opencode's runtime. We don't ship a `dist/` —
