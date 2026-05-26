@@ -90,30 +90,18 @@ function checkCommands(): void {
   }
 }
 
-function checkPrivacyDetectorPortFidelity(): void {
-  // The privacy detector MUST stay byte-identical (modulo the file
-  // header) with the canonical TS source in the-librarian. If the
-  // canonical source isn't available locally (CI / where the sibling
-  // repo isn't checked out) we skip.
-  const canonical = "/Users/jim/code/the-librarian/integrations/shared/librarian-lifecycle/src/privacy.ts";
-  if (!fs.existsSync(canonical)) return;
-
-  const ours = fs.readFileSync(path.join(repoRoot, "src/privacy-detector.ts"), "utf8");
-  const stripped = ours.replace(/^[\s\S]*?(?=^\/\/ Privacy-marker detection)/m, "");
-  const canonicalBody = fs.readFileSync(canonical, "utf8");
-
-  if (stripped !== canonicalBody) {
-    fail(
-      `src/privacy-detector.ts: drift from canonical TS source. ` +
-        `If this is intentional, change the canonical source in the same PR.`,
-    );
-  }
-}
+// Note: an earlier version of this validator gated byte-identity
+// between `src/privacy-detector.ts` and a canonical TS source at
+// `the-librarian/integrations/shared/librarian-lifecycle/src/privacy.ts`.
+// That canonical source was deleted when the Librarian family went
+// fully standalone, so the byte-identity check was dropped. The
+// privacy-marker list now lives as five peer implementations across
+// the family; coordinate any change via the AGENTS.md §2 rule, not
+// via a local validator.
 
 checkPackageJson();
 checkEntrypoint();
 checkCommands();
-checkPrivacyDetectorPortFidelity();
 
 if (errors.length === 0) {
   console.log("OK");

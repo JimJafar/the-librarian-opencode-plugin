@@ -28,11 +28,11 @@ your PR, inherits whatever you said — make sure it's true.
 This is The Librarian. Privacy is the product, not a feature. The
 off-record gate stops all automatic recording — never bypass it, never
 "just for debugging." Bearer tokens go in headers, never in URLs or
-logs or error messages. The privacy-marker list is shared across the
-canonical TypeScript source, the Hermes Python port, the Codex JS
-port, and this repo's **direct port** (`src/privacy-detector.ts` is
-byte-identical to the canonical TS modulo the header) — change all
-four or none.
+logs or error messages. The privacy-marker list is shared across all
+five Librarian plugins (Claude Code, Codex, Hermes, OpenCode, Pi) —
+**five peer implementations of the same behaviour, no single canonical
+source any longer.** Any marker-list change must land coordinated
+across all five repos in one go (or none).
 
 ### Fail-soft, never block the user's turn
 
@@ -148,10 +148,14 @@ CI runs the first four on Bun latest.
 - **`chat.message` is the privacy gate, NOT `message.updated`.** It
   fires pre-LLM with a mutable output, so off-record markers stop
   recording on the SAME turn (no one-turn lag).
-- **The privacy detector is a DIRECT port** of `the-librarian/
-  integrations/shared/librarian-lifecycle/src/privacy.ts` — not a
-  re-port like Codex (JS) or Hermes (Python). `scripts/validate.ts`
-  will gate byte-identity once Task 13 lands.
+- **The privacy detector is now a peer**, not a port. It was
+  originally byte-identical to the canonical TS source that lived in
+  `the-librarian/integrations/shared/librarian-lifecycle/src/privacy.ts`;
+  that source was deleted with the rest of `integrations/` when the
+  family went standalone, so this file and the four sibling
+  implementations (Codex JS, Hermes Python, Pi TS, Claude bundled JS)
+  are now peers. Coordinate any marker-list change across all five
+  repos.
 - **MCP wiring stays in the user's `opencode.json`.** opencode has no
   programmatic API for registering MCP servers from a plugin. README
   shows the four-line `mcpServers.librarian` snippet users add.

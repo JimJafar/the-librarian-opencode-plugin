@@ -11,6 +11,19 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Privacy detector documentation:** AGENTS.md §2 and §4 updated to
+  reflect that the canonical TS source in `the-librarian` was deleted
+  when the family went fully standalone. The privacy detector is now
+  one of five peer implementations across the family (Claude Code,
+  Codex, Hermes, this repo, Pi); coordinate any marker-list change
+  across all five repos.
+- **`scripts/validate.ts`:** removed the byte-identity check against
+  the canonical TS source (the canonical no longer exists). All other
+  shape checks (package.json, entrypoint, commands frontmatter) are
+  unchanged.
+
 ## [0.1.0] — 2026-05-26
 
 Initial public release. An [opencode](https://opencode.ai) plugin for
