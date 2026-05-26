@@ -1,0 +1,64 @@
+name: publish
+
+# Runs on:
+#   - any pushed tag matching v*.*.*  (CI publishes on release tag)
+#   - manual trigger from the Actions UI (recovery path — re-publish
+#     v0.1.0 if the initial publish from a developer machine failed
+#     due to expired credentials; useful exactly once after adding
+#     the NPM_TOKEN secret to the repo).
+#
+# Requires repo secret: NPM_TOKEN (an npm "Automation" token with
+# read-and-write scope on this package — bypasses 2FA on publish).
+# Generate at https://www.npmjs.com/settings/<username>/tokens
+# (pick "Granular Access Token", set Permissions = "Read and write").
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (defaults to package.json version)"
+        required: false
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # `id-token: write` enables npm provenance — opt-in attestation
+      # that this exact package came from this exact CI run.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - run: bun install --frozen-lockfile
+      - name: Gate (typecheck + tests + validate)
+        run: |
+          bun run typecheck
+          bun test
+          bun run validate
+      - name: Verify package.json version matches the trigger
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF#refs/tags/v}"
+          pkg=$(node -p 'require("./package.json").version')
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::Tag $tag does not match package.json version $pkg"
+            exit 1
+          fi
+      - name: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
