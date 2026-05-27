@@ -66,7 +66,6 @@ describe("handleSystemTransform", () => {
     const out = output();
     await handleSystemTransform({ sessionID: "s_1" }, out, deps);
     expect(asked).toEqual({ id: "opencode:s_1", t: 500 });
-    void asked;
     expect(out.system).toEqual(["BASE_SYSTEM", BLOCK]);
   });
 
