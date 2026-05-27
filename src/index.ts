@@ -29,6 +29,7 @@ import { handleSessionCreated } from "./handlers/session-created.ts";
 import { handleSessionCompacted } from "./handlers/session-compacted.ts";
 import { handleSessionIdle } from "./handlers/session-idle.ts";
 import { handleChatMessage } from "./handlers/chat-message.ts";
+import { handleSystemTransform } from "./handlers/system-transform.ts";
 
 const DATA_DIR_NAME = "the-librarian-opencode-plugin";
 
@@ -64,6 +65,18 @@ const plugin: Plugin = async (input) => {
         .join("\n");
       await safe("chat.message", () =>
         handleChatMessage({ sessionID: _input.sessionID, cwd: deps.worktree, text }, deps),
+      );
+    },
+    "experimental.chat.system.transform": async (input, output) => {
+      // §4.9 conv-state injection. The handler is fail-soft end-to-end
+      // and never mutates `output.system` on the privacy/miss/error
+      // paths — it only `.push()`es when a state row exists. The SDK
+      // safety-fallback (issue tracked in opencode's #17100) restores
+      // the original system array if a plugin empties it; we never
+      // do that, but the eyeball-test gate verifies the additionalist
+      // path reaches the model.
+      await safe("experimental.chat.system.transform", () =>
+        handleSystemTransform(input, output, deps),
       );
     },
     event: async ({ event }) => {

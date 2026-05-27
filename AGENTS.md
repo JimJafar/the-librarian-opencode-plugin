@@ -164,3 +164,35 @@ CI runs the first four on Bun latest.
   the in-tree `integrations/opencode/wrapper.sh` used
   `opencode:project:{cwd}:session:{id}`. One-time break, flagged
   in CHANGELOG.
+
+## 5. `experimental.chat.system.transform` monitoring plan
+
+The §4.9 conv-state injection rides on opencode's
+`experimental.chat.system.transform` hook. The `experimental.*`
+prefix is the SDK's signal that the namespace can graduate, change
+shape, or be removed between minor versions — so the implementation
+needs an active monitoring posture, not "set and forget". Four
+mechanisms keep us honest (cf.
+[`docs/specs/opencode-conv-state-injection-spec.md`](../the-librarian/docs/specs/opencode-conv-state-injection-spec.md)
+§7.1):
+
+1. **Pin the SDK + run `tsc --noEmit` in CI.** `@opencode-ai/plugin`
+   is pinned in `package.json`; CI runs `tsc --noEmit` on every PR.
+   If a bump changes the hook's input/output shape, the typecheck
+   fails before the change ships.
+2. **Grep the SDK CHANGELOG on every bump.** When bumping
+   `@opencode-ai/plugin`, search the upstream CHANGELOG for the
+   string `experimental.chat.system.transform` (and "system" /
+   "system prompt"). If anything surfaces, read it before merging.
+3. **Watch the namespace graduate.** The day the hook moves out of
+   `experimental.*` (e.g. to `chat.system.transform` or
+   `chat.system.augment`), rewire `src/index.ts` and `src/handlers/
+   system-transform.ts` to the new name. The grep mechanism above
+   is the trigger.
+4. **Quarterly eyeball re-test.** Once per quarter (or on every SDK
+   bump, whichever is sooner), run the eyeball test from the spec
+   §7 step 4: ask "what domain is this conversation in?" in a real
+   opencode session with a seeded `conv_state` row, verify the
+   model answers correctly. This catches silent-discard regressions
+   (the residual upstream issue tracked at opencode#17100) that no
+   automated check could.

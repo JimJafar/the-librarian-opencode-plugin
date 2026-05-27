@@ -29,6 +29,7 @@ function makeDeps(dir: string, client: McpClient | null, now = 1_000_000): Deps 
     saveState: (s: PluginState) => saveState(dir, s),
     withLock: <T,>(fn: () => Promise<T>) => withLock(dir, fn),
     getClient: () => client,
+    getConvStateClient: () => ({ convStateGet: async () => null }),
     log: async () => undefined,
     now: () => now,
     env: { LIBRARIAN_MCP_URL: "http://x", LIBRARIAN_AGENT_TOKEN: "t" },

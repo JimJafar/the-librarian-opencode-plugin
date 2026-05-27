@@ -6,6 +6,7 @@
 // the seam that lets every handler be unit-tested with mocks.
 
 import { createMcpClient, type McpClient } from "./mcp-client.ts";
+import { createConvStateClientFromConfig, type ConvStateClient } from "./conv-state-client.ts";
 import { loadState, saveState, withLock, type PluginState } from "./state-store.ts";
 import { log as fileLog } from "./log.ts";
 
@@ -17,6 +18,13 @@ export interface Deps {
   withLock: <T>(fn: () => Promise<T>) => Promise<T>;
   /** Returns null when LIBRARIAN_MCP_URL/TOKEN are unset OR dataDir is missing. */
   getClient: () => McpClient | null;
+  /**
+   * Returns a per-call conv-state client; the underlying McpClient is built
+   * per call so the requested timeoutMs can be honoured. When the Librarian
+   * is unconfigured the client is still returned but its `convStateGet` will
+   * resolve null (the McpClient factory throws on construction).
+   */
+  getConvStateClient: () => ConvStateClient;
   log: (entry: Record<string, unknown>) => Promise<void>;
   now: () => number;
   env: NodeJS.ProcessEnv;
@@ -44,6 +52,14 @@ export function buildDeps(opts: { dataDir: string; worktree: string; env?: NodeJ
     return cached;
   };
 
+  // A separate factory so the per-call timeout can be honoured (the
+  // base McpClient only takes the timeout at construction). When env
+  // vars are unset, the factory will throw on the first call; the
+  // conv-state-client catches and returns null, matching the fail-soft
+  // contract.
+  const getConvStateClient = (): ConvStateClient =>
+    createConvStateClientFromConfig({ endpoint: endpoint ?? "", token: token ?? "" });
+
   return {
     dataDir,
     worktree,
@@ -51,6 +67,7 @@ export function buildDeps(opts: { dataDir: string; worktree: string; env?: NodeJ
     saveState: (state) => saveState(dataDir, state),
     withLock: (fn) => withLock(dataDir, fn),
     getClient,
+    getConvStateClient,
     log: (entry) => fileLog(dataDir, entry),
     now: () => Date.now(),
     env,
