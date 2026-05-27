@@ -11,6 +11,24 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+### Added
+
+- **Conv-state injection via `experimental.chat.system.transform`.**
+  Implements §4.9 of the upstream memory-domain-isolation rollout. A
+  new handler fires once per turn after opencode assembles the system
+  prompt, resolves the calling `conversation_state` row via
+  `conv_state_get`, and `.push()`es the canonical
+  `<conversation-state>` block onto `output.system`. The LLM sees the
+  current `domain` / `session_id` / `off_record` on every turn,
+  defeating context-compaction-driven state loss. Fail-soft per
+  AGENTS.md §2 — off-record / missing sessionID / missing row /
+  network failure / timeout / unexpected throw all leave
+  `output.system` untouched.
+- **`AGENTS.md` §5 — monitoring plan for the experimental hook.** Four
+  mechanisms (pinned SDK + CI typecheck; CHANGELOG grep on bumps;
+  namespace-graduation watch; quarterly eyeball re-test) so the
+  `experimental.*` namespace can be tracked without surprise.
+
 ### Changed
 
 - **Privacy detector documentation:** AGENTS.md §2 and §4 updated to

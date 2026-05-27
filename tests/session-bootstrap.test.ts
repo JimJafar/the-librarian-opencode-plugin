@@ -43,6 +43,7 @@ function makeDeps(dir: string, opts: { client?: McpClient | null; env?: NodeJS.P
     saveState: (s: PluginState) => saveState(dir, s),
     withLock: <T,>(fn: () => Promise<T>) => withLock(dir, fn),
     getClient: () => client,
+    getConvStateClient: () => ({ convStateGet: async () => null }),
     log: async () => undefined,
     now: opts.now ?? (() => 1000),
     env,

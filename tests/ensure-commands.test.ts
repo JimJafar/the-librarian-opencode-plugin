@@ -29,6 +29,7 @@ function silentDeps(dataDir: string): Deps {
     saveState: async () => undefined,
     withLock: async (fn) => fn(),
     getClient: () => null,
+    getConvStateClient: () => ({ convStateGet: async () => null }),
     log: async () => undefined,
     now: () => 0,
     env: {},
