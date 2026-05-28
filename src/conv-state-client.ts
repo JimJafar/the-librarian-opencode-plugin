@@ -11,7 +11,13 @@ import { createMcpClient, type McpClient, type McpClientConfig } from "./mcp-cli
 
 export interface ConvStateRow {
   conv_id: string;
-  domain?: string;
+  // `domain` is required on the wire — the backend enforces
+  // `z.string().min(1)` and the SQLite column is `TEXT NOT NULL
+  // DEFAULT 'general'`. Tightening to required forces compile-time
+  // errors on any caller that passes a partial row. The renderer
+  // still defends with `?? "unknown"` in case a malformed row slips
+  // through at runtime.
+  domain: string;
   session_id?: string | null;
   off_record?: boolean;
 }
