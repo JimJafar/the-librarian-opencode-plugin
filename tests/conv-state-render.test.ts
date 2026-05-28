@@ -4,6 +4,7 @@
 // other four plugins' implementations; this test pins the exact shape.
 
 import { describe, expect, test } from "bun:test";
+import type { ConvStateRow } from "../src/conv-state-client.ts";
 import { renderConvStateBlock } from "../src/conv-state-render.ts";
 
 describe("renderConvStateBlock", () => {
@@ -44,5 +45,16 @@ describe("renderConvStateBlock", () => {
       off_record: true,
     });
     expect(block).toContain("  off_record: true");
+  });
+
+  test("falls back to `domain: unknown` (never the literal `undefined`) if a malformed row reaches the renderer at runtime", () => {
+    const malformed = {
+      conv_id: "opencode:s_1",
+      session_id: "ses_1",
+      off_record: false,
+    } as unknown as ConvStateRow;
+    const block = renderConvStateBlock(malformed);
+    expect(block).toContain("  domain: unknown");
+    expect(block).not.toContain("undefined");
   });
 });
