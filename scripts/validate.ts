@@ -65,19 +65,14 @@ function checkEntrypoint(): void {
 
 function checkCommands(): void {
   const dir = path.join(repoRoot, "commands");
-  const expected = [
-    "lib-session-start.md",
-    "lib-session-list.md",
-    "lib-session-resume.md",
-    "lib-session-checkpoint.md",
-    "lib-session-pause.md",
-    "lib-session-end.md",
-    "lib-session-search.md",
-  ];
+  // sessions-rethink PR 4 — the seven /lib-session-* verbs are retired
+  // and replaced by four user-facing commands. The validator now gates
+  // on the new surface.
+  const expected = ["handoff.md", "takeover.md", "learn.md", "toggle-private.md"];
   for (const file of expected) {
     const p = path.join(dir, file);
     if (!fs.existsSync(p)) {
-      fail(`commands/${file}: missing — the seven /lib-session-* verbs are sacred (AGENTS.md §4)`);
+      fail(`commands/${file}: missing — the four user-facing verbs are the contract`);
       continue;
     }
     const body = fs.readFileSync(p, "utf8");
@@ -85,7 +80,9 @@ function checkCommands(): void {
       fail(`commands/${file}: must start with YAML frontmatter including a description: field`);
     }
     if (/\.\.\/\.\.\//.test(body)) {
-      fail(`commands/${file}: contains relative paths (../../) — they won't resolve from inside node_modules; use absolute URLs`);
+      fail(
+        `commands/${file}: contains relative paths (../../) — they won't resolve from inside node_modules; use absolute URLs`,
+      );
     }
   }
 }

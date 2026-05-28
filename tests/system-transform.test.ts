@@ -1,8 +1,14 @@
 // tests/system-transform.test.ts
 //
-// Four-case suite for the `experimental.chat.system.transform`
-// handler — mirrors the Pi extension's handler tests (the §4.9
-// contract is shared; only the input/output shape differs).
+// Four-case suite for the `experimental.chat.system.transform` handler —
+// mirrors the Pi extension's handler tests (the §4.9 contract is shared;
+// only the input/output shape differs).
+//
+// sessions-rethink PR 4 — the local privacy-state file is gone; the
+// handler no longer gates on `state.private`. Private mode is now an
+// in-conversation `[librarian:private=on|off]` marker the LLM honours
+// directly. The conv-state row's own `off_record` field is surfaced by
+// the renderer.
 
 import { describe, expect, test } from "bun:test";
 import { handleSystemTransform } from "../src/handlers/system-transform.ts";
@@ -16,19 +22,13 @@ const STATE: ConvStateRow = {
   off_record: false,
 };
 
-function fakeDeps(overrides: Partial<Deps> & {
-  privateFlag?: boolean;
-  convStateGet?: ConvStateClient["convStateGet"];
-} = {}): { deps: Deps; logs: Array<Record<string, unknown>> } {
+function fakeDeps(
+  overrides: {
+    convStateGet?: ConvStateClient["convStateGet"];
+  } = {},
+): { deps: Deps; logs: Array<Record<string, unknown>> } {
   const logs: Array<Record<string, unknown>> = [];
   const deps: Partial<Deps> = {
-    loadState: async () => ({
-      session_id: null,
-      private: overrides.privateFlag ?? false,
-      last_checkpoint_at: 0,
-      turns_since_checkpoint: 0,
-      source_ref: null,
-    }),
     getConvStateClient: () =>
       overrides.convStateGet
         ? { convStateGet: overrides.convStateGet }
@@ -36,7 +36,6 @@ function fakeDeps(overrides: Partial<Deps> & {
     log: async (entry) => {
       logs.push(entry);
     },
-    ...overrides,
   };
   return { deps: deps as Deps, logs };
 }
@@ -73,21 +72,6 @@ describe("handleSystemTransform", () => {
     const { deps } = fakeDeps({ convStateGet: async () => null });
     const out = output();
     await handleSystemTransform({ sessionID: "s_1" }, out, deps);
-    expect(out.system).toEqual(["BASE_SYSTEM"]);
-  });
-
-  test("never calls convStateGet when off-record", async () => {
-    let called = false;
-    const { deps } = fakeDeps({
-      privateFlag: true,
-      convStateGet: async () => {
-        called = true;
-        return STATE;
-      },
-    });
-    const out = output();
-    await handleSystemTransform({ sessionID: "s_1" }, out, deps);
-    expect(called).toBe(false);
     expect(out.system).toEqual(["BASE_SYSTEM"]);
   });
 
