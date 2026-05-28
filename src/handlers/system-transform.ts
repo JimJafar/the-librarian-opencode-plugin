@@ -6,16 +6,19 @@
 // The hook fires per-turn with the assembled system-prompt parts as a
 // mutable `output.system: string[]`. We push the canonical
 // `<conversation-state>` block onto `output.system` when a state row
-// exists; otherwise we leave the array untouched. The SDK's
-// safety-fallback (issue tracked at #17100) restores the original
-// system array if a plugin empties it, so we can never break a user
-// session by mistake here — but as a defensive measure we never
-// mutate the input slice or replace its contents.
+// exists; otherwise we leave the array untouched. The SDK's safety-
+// fallback (issue tracked at #17100) restores the original system array
+// if a plugin empties it, so we can never break a user session by mistake
+// here — but as a defensive measure we never mutate the input slice or
+// replace its contents.
+//
+// sessions-rethink PR 4 — the local privacy-state file is retired with
+// the rest of the session subsystem. Private mode is now an
+// in-conversation `[librarian:private=on|off]` marker the LLM honours
+// directly. The conv-state row carries its own `off_record` field
+// which the renderer surfaces; the handler does not gate on it.
 //
 // Fail-soft contract (AGENTS.md §2): every error path returns silently.
-// Off-record sessions skip the MCP call entirely; the privacy gate
-// always runs BEFORE the convStateGet so a private state can never
-// observe network activity from this handler.
 
 import type { Deps } from "../deps.ts";
 import { renderConvStateBlock } from "../conv-state-render.ts";
@@ -37,11 +40,6 @@ export async function handleSystemTransform(
 ): Promise<void> {
   try {
     if (!input.sessionID) return;
-
-    // Privacy gate first — an off-record session must never produce
-    // network activity from this handler.
-    const state = await deps.loadState();
-    if (state.private) return;
 
     const client = deps.getConvStateClient();
     const row = await client.convStateGet(`opencode:${input.sessionID}`, CONV_STATE_TIMEOUT_MS);

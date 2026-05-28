@@ -2,7 +2,7 @@
 
 An **[opencode](https://opencode.ai) plugin** for
 [The Librarian](https://github.com/JimJafar/the-librarian) — durable memory +
-cross-harness session lifecycle, backed by a **remote** Librarian MCP server.
+cross-harness narrative handoffs, backed by a **remote** Librarian MCP server.
 
 Sibling plugins:
 [the-librarian-claude-plugin](https://github.com/JimJafar/the-librarian-claude-plugin) ·
@@ -12,19 +12,16 @@ Sibling plugins:
 
 It gives opencode:
 
-- the Librarian **memory + session MCP tools** (`recall`, `remember`,
-  `verify_memory`, `start_session`, `checkpoint_session`, …) over your remote
+- the Librarian **memory MCP tools** (`recall`, `remember`, `propose_memory`,
+  `verify_memory`, `update_memory`, `list_proposals`) over your remote
   endpoint, via opencode's native `mcpServers` config;
-- seven **`/lib-session-*` slash commands** (start, list, resume, checkpoint,
-  pause, end, search), auto-installed on first run;
-- **automatic session lifecycle** — sessions start on `session.created`,
-  record per-turn events on `session.idle`, checkpoint on `session.compacted`
-  and on a debounced threshold (≥ 10 min OR ≥ 20 turns), reconcile stale
-  active sessions on every `session.created`;
-- an **off-record privacy gate** — natural-language markers (`off the
-  record`, `keep this between us`, …) and `/lib-toggle-private` end the
-  attached session **within the same turn** and suppress further recording
-  until you go back on the record.
+- the **handoff MCP tools** (`store_handoff`, `list_handoffs`,
+  `claim_handoff`) for atomic cross-harness handover;
+- four **slash commands** auto-installed on first run: `/handoff`,
+  `/takeover`, `/learn`, `/toggle-private`;
+- a **per-turn conv-state injection hook** (`experimental.chat.system.transform`)
+  that keeps the model aware of which domain its memory writes route to,
+  surviving compactions.
 
 ## Install
 
@@ -65,12 +62,11 @@ export LIBRARIAN_MCP_URL="https://librarian.example.com/mcp"
 export LIBRARIAN_AGENT_TOKEN="<your-token>"
 ```
 
-Restart opencode. On the first `session.created` the plugin writes the
-seven `lib-session-*.md` files to `~/.config/opencode/commands/`.
-opencode scans command files at startup, so the verbs appear in the
-`/` slash-command picker on the **next** opencode launch (one extra
-restart after first install). After that they're available on every
-launch.
+Restart opencode. On plugin init the four `*.md` command files land in
+`~/.config/opencode/commands/` (or `$XDG_CONFIG_HOME/opencode/commands/`,
+or `$LIBRARIAN_COMMANDS_DIR/` if you need to sandbox the path). opencode
+scans command files at startup, so the verbs appear in the `/` slash-
+command picker on the **next** opencode launch.
 
 ## Configure (environment variables)
 
@@ -79,76 +75,46 @@ launch.
 | `LIBRARIAN_MCP_URL` | yes | The Librarian HTTP MCP URL, e.g. `https://librarian.example.com/mcp` |
 | `LIBRARIAN_AGENT_TOKEN` | yes | Bearer token for the endpoint (only ever sent in the request header) |
 | `LIBRARIAN_AGENT_ID` | no | Canonical agent id; omit if the token is agent-bound server-side |
-| `LIBRARIAN_PROJECT_KEY` | no | Default project scope for sessions |
+| `LIBRARIAN_PROJECT_KEY` | no | Default project scope |
 | `LIBRARIAN_PLUGIN_DATA` | no | Override the plugin's data dir (defaults to `~/.local/share/the-librarian-opencode-plugin/`) |
+| `LIBRARIAN_COMMANDS_DIR` | no | Override the commands install path (defaults to `$XDG_CONFIG_HOME/opencode/commands` or `~/.config/opencode/commands`) |
 
 ## What it does
 
-### Memory + sessions (`/lib-session-*` slash commands)
+### Four user-facing verbs
 
-Once installed, type `/` in opencode to see the seven verbs:
+Once installed, type `/` in opencode to see four commands:
 
-| Verb | Tool called |
+| Verb | What it does |
 | --- | --- |
-| `/lib-session-start [title] [--private]` | `start_session` |
-| `/lib-session-list [--include-ended]` | `list_sessions` |
-| `/lib-session-resume [<id\|number>]` | `continue_session` |
-| `/lib-session-checkpoint` | `checkpoint_session` |
-| `/lib-session-pause` | `pause_session` |
-| `/lib-session-end` | `end_session` |
-| `/lib-session-search <query>` | `search_sessions` |
+| `/handoff` | Author a five-section narrative and persist via `store_handoff` for cross-harness pickup |
+| `/takeover` | List candidate handoffs, atomically claim, inject the document |
+| `/learn` | Extract durable lessons from the conversation → `propose_memory` |
+| `/toggle-private` | Flip the `[librarian:private=on\|off]` marker — pure in-conversation, no server state, no hook |
 
-The canonical contract lives at
-[`docs/slash-commands.md`](https://github.com/JimJafar/the-librarian/blob/main/docs/slash-commands.md)
-in the-librarian. Every Librarian harness honours the same verb names.
+The four verbs are the same surface in every Librarian harness (Claude
+Code, Codex, Hermes, Pi).
 
-### Automatic recording (the hooks)
+### Per-turn conv-state injection
 
-Once installed + env vars set, the plugin records every opencode run as a
-Librarian session without you asking:
+The single registered hook (`experimental.chat.system.transform`) fetches
+the conv-state row for this opencode session and, when one exists,
+`.push()`es a `<conversation-state>` block onto opencode's system-prompt
+array. The model sees the current `domain` / `session_id` / `off_record`
+on every turn — even after a compaction that would otherwise drop the
+system message.
 
-- **First `session.created`**: a session starts bound to
-  `source_ref = opencode:run:<opencode-session-id>:cwd:<abs>` (or
-  `cwd:<abs>` fallback). Race-safe under concurrent `chat.message` /
-  `session.created` fires.
-- **Every `session.idle`**: a `record_session_event` (type=message,
-  generic per-turn summary).
-- **Every `session.compacted`**: `checkpoint_session` — the rolling
-  summary stays in sync with what opencode actually carries forward.
-- **Idle**: every 10 minutes OR every 20 turns since the last
-  checkpoint, `session.idle` also calls `checkpoint_session`. Tunable
-  in `src/handlers/checkpoint-policy.ts`.
-- **On every `session.created`**: list any active sessions for this
-  `source_ref` and pause anything that isn't ours — so a hard exit
-  doesn't leave you with two `active` sessions on the dashboard.
-
-### Privacy (the off-record gate)
-
-Natural-language markers in any user prompt flip the plugin to off-record.
-opencode's `chat.message` hook runs **pre-LLM**, so the marker turn itself
-is NOT recorded (a meaningful win over the Codex / Claude / Hermes plugins
-which have a documented one-turn lag).
-
-- **Going private:** `off the record`, `keep this between us`, `don't
-  remember this`, `do not remember this`, `don't save this`, `don't store
-  this`, `private from here`, `this is a private session`. Also
-  `/lib-toggle-private`.
-- **Coming back:** `back on the record`, `you can remember again`, `end
-  private mode`, `this can be remembered`. Also `/lib-toggle-private`.
-
-While private, **no MCP recording call is ever made** — the attached
-session is ended with a neutral reason on entering private, and
-`session.idle` / `session.compacted` become no-ops. The detector is the
-same one used by the canonical TS source and the four sibling plugins; it
-errs toward privacy.
+The hook never blocks a turn: a missing row, a network failure, or a
+misconfigured token all return silently and the system prompt stays
+unchanged.
 
 ## Troubleshooting
 
 **Slash commands don't appear in the `/` picker.** Check that the plugin
 ran at least once: `cat ~/.config/opencode/commands/.librarian-installed`
 should print the plugin version. If the directory is empty, the plugin
-hasn't fired `session.created` yet — open a session and the commands
-appear immediately.
+hasn't initialised yet — launch opencode and the commands appear on the
+next restart.
 
 **`/mcp` panel doesn't list `librarian`.** Verify `LIBRARIAN_MCP_URL` and
 `LIBRARIAN_AGENT_TOKEN` are exported in the shell that launched opencode.

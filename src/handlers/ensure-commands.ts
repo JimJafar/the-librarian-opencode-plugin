@@ -44,7 +44,23 @@ export interface EnsureCommandsResult {
 }
 
 const defaultSourceDir = path.resolve(import.meta.dir, "../../commands");
-const defaultTargetDir = path.join(os.homedir(), ".config", "opencode", "commands");
+
+// Resolution order for the install dir (highest precedence first):
+//   1. `LIBRARIAN_COMMANDS_DIR` env var — used by the smoke test (and
+//      anyone running the plugin in a sandbox); `os.homedir()` on
+//      macOS reads from `getpwuid`, not `$HOME`, so a smoke test
+//      can't otherwise sandbox the install path.
+//   2. `$XDG_CONFIG_HOME/opencode/commands` — the standard XDG path
+//      opencode itself scans.
+//   3. `~/.config/opencode/commands` via `os.homedir()` — Linux + macOS
+//      fallback.
+function resolveDefaultTargetDir(): string {
+  if (process.env.LIBRARIAN_COMMANDS_DIR) return process.env.LIBRARIAN_COMMANDS_DIR;
+  if (process.env.XDG_CONFIG_HOME) {
+    return path.join(process.env.XDG_CONFIG_HOME, "opencode", "commands");
+  }
+  return path.join(os.homedir(), ".config", "opencode", "commands");
+}
 
 function defaultVersion(): string {
   try {
@@ -62,7 +78,7 @@ export async function ensureCommands(
   opts: EnsureCommandsOptions = {},
 ): Promise<EnsureCommandsResult> {
   const sourceDir = opts.sourceDir ?? defaultSourceDir;
-  const targetDir = opts.targetDir ?? defaultTargetDir;
+  const targetDir = opts.targetDir ?? resolveDefaultTargetDir();
   const version = opts.pluginVersion ?? defaultVersion();
 
   const result: EnsureCommandsResult = { written: [], skipped: [], sentinel: "skipped" };

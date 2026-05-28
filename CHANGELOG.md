@@ -11,6 +11,39 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Sessions rethink — breaking change (sessions-rethink PR 4).** The
+  entire session-lifecycle stack is retired in favour of a four-verb
+  agent surface. The OpenCode plugin had the heaviest hook surface of
+  any harness; this PR is correspondingly the largest deletion:
+  - **Removed hooks:** `chat.message` (privacy gate), `event` switch
+    on `session.created` / `session.idle` / `session.compacted`. Only
+    `experimental.chat.system.transform` survives, and only to do
+    conv-state injection (spec §4.9).
+  - **Removed handlers:** `src/handlers/chat-message.ts`,
+    `checkpoint-policy.ts`, `session-bootstrap.ts`,
+    `session-compacted.ts`, `session-created.ts`, `session-idle.ts`.
+  - **Removed source:** `src/state-store.ts`, `src/privacy-detector.ts`,
+    `src/mcp-parse.ts`. The state-store file (with its per-cwd lock)
+    and the natural-language private detector are gone — private mode
+    is now an in-conversation `[librarian:private=on|off]` marker the
+    LLM handles directly via `/toggle-private`.
+  - **Removed commands:** the seven `commands/lib-session-*.md` files.
+  - **Added commands:** `commands/handoff.md`, `takeover.md`,
+    `learn.md`, `toggle-private.md` — installed via the existing
+    `ensureCommands` mechanism at plugin init (instead of on
+    `session.created`).
+  - **Server compatibility:** requires a Librarian server running the
+    sessions-rethink PR 1 build (the `store_handoff` / `list_handoffs`
+    / `claim_handoff` and `conv_state_*` MCP tools must exist).
+  - **Migration:** existing operators should restart opencode. The
+    install dir is now resolved via `LIBRARIAN_COMMANDS_DIR` (override)
+    then `$XDG_CONFIG_HOME/opencode/commands`, then
+    `~/.config/opencode/commands`. The old `lib-session-*.md` files
+    written by prior versions can be deleted by hand — the new build
+    never touches them.
+
 ### Added
 
 - **Conv-state injection via `experimental.chat.system.transform`.**

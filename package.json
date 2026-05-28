@@ -1,7 +1,7 @@
 {
   "name": "the-librarian-opencode-plugin",
-  "version": "0.1.0",
-  "description": "opencode plugin for The Librarian: durable memory + cross-harness session lifecycle over a remote Librarian MCP server.",
+  "version": "0.2.0",
+  "description": "opencode plugin for The Librarian: durable memory + cross-harness handoffs over a remote Librarian MCP server.",
   "license": "Apache-2.0",
   "author": {
     "name": "Jim Sangwine",
@@ -12,7 +12,7 @@
     "type": "git",
     "url": "https://github.com/JimJafar/the-librarian-opencode-plugin.git"
   },
-  "keywords": ["opencode", "opencode-plugin", "the-librarian", "memory", "sessions", "mcp", "recall", "handover"],
+  "keywords": ["opencode", "opencode-plugin", "the-librarian", "memory", "handoff", "mcp", "recall", "cross-harness"],
   "type": "module",
   "main": "./src/index.ts",
   "exports": {

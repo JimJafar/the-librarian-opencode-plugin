@@ -9,8 +9,8 @@ commit. Follow it on every change.
 ## 1. What this repo is
 
 An [opencode](https://opencode.ai) plugin for The Librarian — gives
-opencode remote memory tools, automatic session lifecycle, seven
-`/lib-session-*` slash commands, and an off-record privacy gate.
+opencode remote memory tools, cross-harness handoffs (/handoff /takeover /learn /toggle-private), and a per-turn
+conv-state injection hook.
 Distributed as an npm package; installed via opencode's native
 `"plugin": [...]` config.
 
@@ -141,29 +141,22 @@ CI runs the first four on Bun latest.
   Task 0 (see [`notes/commands-discovery.md`](./notes/commands-discovery.md))
   opencode does NOT scan inside `node_modules/` for command files.
   The plugin's `commands/` directory is the SOURCE; the
-  `ensure-commands` handler writes them to `~/.config/opencode/
-  commands/` on first `session.created`. Sentinel
-  `.librarian-installed` prevents re-write churn; user-edited files
-  are never clobbered.
-- **`chat.message` is the privacy gate, NOT `message.updated`.** It
-  fires pre-LLM with a mutable output, so off-record markers stop
-  recording on the SAME turn (no one-turn lag).
-- **The privacy detector is now a peer**, not a port. It was
-  originally byte-identical to the canonical TS source that lived in
-  `the-librarian/integrations/shared/librarian-lifecycle/src/privacy.ts`;
-  that source was deleted with the rest of `integrations/` when the
-  family went standalone, so this file and the four sibling
-  implementations (Codex JS, Hermes Python, Pi TS, Claude bundled JS)
-  are now peers. Coordinate any marker-list change across all five
-  repos.
+  `ensure-commands` handler writes them to
+  `$LIBRARIAN_COMMANDS_DIR` (override),
+  `$XDG_CONFIG_HOME/opencode/commands`, or
+  `~/.config/opencode/commands` (in that precedence) on plugin init.
+  Sentinel `.librarian-installed` prevents re-write churn; user-edited
+  files are never clobbered.
+- **Private mode is in-conversation only (sessions-rethink PR 4).** The
+  natural-language `chat.message` privacy gate is retired. Private mode
+  is now an in-conversation `[librarian:private=on|off]` marker the LLM
+  handles directly via the `/toggle-private` verb. No server flag, no
+  hook, no persisted state. Compaction can erase the marker (default
+  falls back to OFF) — documented limitation accepted in exchange for a
+  zero-dependency privacy model.
 - **MCP wiring stays in the user's `opencode.json`.** opencode has no
   programmatic API for registering MCP servers from a plugin. README
   shows the four-line `mcpServers.librarian` snippet users add.
-- **`source_ref` shape differs from the in-tree wrapper.** This
-  plugin uses the family-standard `opencode:run:<id>:cwd:<abs>`;
-  the in-tree `integrations/opencode/wrapper.sh` used
-  `opencode:project:{cwd}:session:{id}`. One-time break, flagged
-  in CHANGELOG.
 
 ## 5. `experimental.chat.system.transform` monitoring plan
 
