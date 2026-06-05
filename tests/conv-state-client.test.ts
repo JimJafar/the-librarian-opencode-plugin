@@ -19,8 +19,6 @@ describe("convStateGet", () => {
         expect(args).toEqual({ conv_id: "opencode:s_1" });
         return JSON.stringify({
           conv_id: "opencode:s_1",
-          domain: "work",
-          session_id: "ses_1",
           off_record: false,
         });
       }),
@@ -28,8 +26,6 @@ describe("convStateGet", () => {
     const state = await client.convStateGet("opencode:s_1", 500);
     expect(state).toEqual({
       conv_id: "opencode:s_1",
-      domain: "work",
-      session_id: "ses_1",
       off_record: false,
     });
   });

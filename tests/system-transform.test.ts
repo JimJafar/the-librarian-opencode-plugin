@@ -17,8 +17,6 @@ import type { Deps } from "../src/deps.ts";
 
 const STATE: ConvStateRow = {
   conv_id: "opencode:s_1",
-  domain: "work",
-  session_id: "ses_1",
   off_record: false,
 };
 
@@ -47,8 +45,6 @@ function output(initial: string[] = ["BASE_SYSTEM"]): { system: string[] } {
 const BLOCK = [
   "<conversation-state>",
   "  conv_id: opencode:s_1",
-  "  domain: work",
-  "  session_id: ses_1",
   "  off_record: false",
   "</conversation-state>",
 ].join("\n");
@@ -66,6 +62,8 @@ describe("handleSystemTransform", () => {
     await handleSystemTransform({ sessionID: "s_1" }, out, deps);
     expect(asked).toEqual({ id: "opencode:s_1", t: 500 });
     expect(out.system).toEqual(["BASE_SYSTEM", BLOCK]);
+    expect(BLOCK).not.toContain("domain:");
+    expect(BLOCK).not.toContain("session_id:");
   });
 
   test("returns silently on a miss (convStateGet null)", async () => {
