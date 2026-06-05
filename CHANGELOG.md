@@ -11,6 +11,26 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Conv-state block trimmed to `conv_id` + `off_record` (lockstep).**
+  The injected `<conversation-state>` block drops the retired `domain`
+  and `session_id` lines, leaving only `conv_id` and `off_record`. This
+  lands in lockstep with the other four Librarian plugins; the rendered
+  shape must stay byte-identical across harnesses. `renderConvStateBlock`
+  and the `ConvStateRow` type are trimmed accordingly, with tests and the
+  smoke scenario updated to the new two-line shape.
+- **Docs + `/learn` drop classifier/domain/session residue.** The
+  `/learn` command no longer references the removed `conv_id`→`domain`
+  resolution or `/lib-session-list`, and attributes proposal routing to
+  "the server" rather than a "classifier worker". AGENTS.md replaces the
+  retired `/lib:session` verb contract with the current cross-harness
+  verbs (`/handoff`, `/takeover`, `/learn`, `/toggle-private`) and the
+  `active | proposed | archived` memory states, and updates the quarterly
+  eyeball re-test to probe `off_record` instead of `domain`. README drops
+  the `domain` / `session_id` residue and points the command-file
+  troubleshooting note at the four handoff commands.
+
 ## [0.2.0] — 2026-05-28
 
 ### Added

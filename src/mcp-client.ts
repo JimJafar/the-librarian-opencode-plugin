@@ -7,10 +7,8 @@
 // to prevent ?token=… leaks; response size cap; timeout), strict TS.
 //
 // Why we have our own client rather than going through opencode's MCP
-// layer: the **automatic** recording calls (start_session,
-// record_session_event, checkpoint_session, pause_session,
-// end_session, list_sessions) need to be enforceable locally —
-// off-record and fail-soft are this plugin's invariants, not
+// layer: the **automatic** conv-state calls need to be enforceable
+// locally — off-record and fail-soft are this plugin's invariants, not
 // opencode's. The user-facing memory tools (recall, remember, …) still
 // go through opencode's MCP via the `mcpServers.librarian` config
 // snippet in opencode.json.

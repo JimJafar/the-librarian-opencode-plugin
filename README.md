@@ -20,7 +20,7 @@ It gives opencode:
 - four **slash commands** auto-installed on first run: `/handoff`,
   `/takeover`, `/learn`, `/toggle-private`;
 - a **per-turn conv-state injection hook** (`experimental.chat.system.transform`)
-  that keeps the model aware of which domain its memory writes route to,
+  that keeps the model aware of the conversation's `off_record` state,
   surviving compactions.
 
 ## Install
@@ -100,9 +100,8 @@ Code, Codex, Hermes, Pi).
 The single registered hook (`experimental.chat.system.transform`) fetches
 the conv-state row for this opencode session and, when one exists,
 `.push()`es a `<conversation-state>` block onto opencode's system-prompt
-array. The model sees the current `domain` / `session_id` / `off_record`
-on every turn — even after a compaction that would otherwise drop the
-system message.
+array. The model sees the current `conv_id` / `off_record` on every turn —
+even after a compaction that would otherwise drop the system message.
 
 The hook never blocks a turn: a missing row, a network failure, or a
 misconfigured token all return silently and the system prompt stays
@@ -140,8 +139,9 @@ without the next `session.created` running reconciliation (e.g. crash
 before next launch), an old `active` session may linger. The next
 `session.created` will pause it.
 
-**I edited one of the `lib-session-*.md` files and the plugin reverted
-it.** It shouldn't — the plugin only writes a file if it's MISSING from
+**I edited one of the command files (`handoff.md`, `takeover.md`,
+`learn.md`, `toggle-private.md`) and the plugin reverted it.** It
+shouldn't — the plugin only writes a file if it's MISSING from
 `~/.config/opencode/commands/`. If yours got overwritten, please file an
 issue with the file contents and the steps to reproduce.
 

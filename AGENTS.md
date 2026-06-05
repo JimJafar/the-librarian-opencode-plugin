@@ -48,13 +48,12 @@ Three things stay consistent across the family. Don't change any of
 them in one repo without changing all of them in the same coordinated
 push, and never invent new ones unilaterally:
 
-- **`/lib:session` verbs:** `start`, `list`, `resume`, `checkpoint`,
-  `pause`, `end`, `search`, plus `/lib-toggle-private`. Canonical
-  contract: [`the-librarian/docs/slash-commands.md`](https://github.com/JimJafar/the-librarian/blob/main/docs/slash-commands.md).
-- **Three-state models:** sessions are `active | paused | ended`;
-  memories are `active | proposed | archived`. The retired verbs
-  (`archive`, `restore`, `delete`, `status`, `confirm_memory`,
-  `reject_memory`) are gone for good.
+- **Cross-harness verbs:** `/handoff`, `/takeover`, `/learn`,
+  `/toggle-private`. Canonical contract:
+  [`the-librarian/docs/slash-commands.md`](https://github.com/JimJafar/the-librarian/blob/main/docs/slash-commands.md).
+- **Memory state model:** memories are `active | proposed | archived`.
+  The retired verbs (`archive`, `restore`, `delete`, `status`,
+  `confirm_memory`, `reject_memory`) are gone for good.
 - **`source_ref` shape:** `<harness>:<run-id>:cwd:<abs>` when the run
   id is available, else `cwd:<abs>`.
 
@@ -189,8 +188,9 @@ mechanisms keep us honest (cf.
    is the trigger.
 4. **Quarterly eyeball re-test.** Once per quarter (or on every SDK
    bump, whichever is sooner), run the eyeball test from the spec
-   §7 step 4: ask "what domain is this conversation in?" in a real
-   opencode session with a seeded `conv_state` row, verify the
-   model answers correctly. This catches silent-discard regressions
-   (the residual upstream issue tracked at opencode#17100) that no
-   automated check could.
+   §7 step 4: ask "is this conversation off the record?" in a real
+   opencode session with a seeded `conv_state` row (`off_record:
+   true`), verify the model reads the injected `off_record` value
+   correctly. This catches silent-discard regressions (the residual
+   upstream issue tracked at opencode#17100) that no automated check
+   could.

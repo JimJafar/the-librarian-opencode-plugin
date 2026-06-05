@@ -135,8 +135,6 @@ interface PluginInputStub {
       convStatePayload = JSON.stringify({
         conv_id: "opencode:s_smoke",
         harness: "opencode",
-        domain: "coding",
-        session_id: "ses_attached",
         off_record: false,
       });
       convStateMiss = false;
@@ -156,7 +154,9 @@ interface PluginInputStub {
       assert(calls[0]!.tool === "conv_state_get", "called conv_state_get");
       const block = out.system[1] ?? "";
       assert(block.includes("<conversation-state>"), "block injected");
-      assert(block.includes("domain: coding"), "block carries domain");
+      assert(block.includes("conv_id: opencode:s_smoke"), "block carries conv_id");
+      assert(block.includes("off_record: false"), "block carries off_record");
+      assert(!block.includes("domain:"), "block carries no retired domain line");
     }
 
     console.log("\nScenario 2: experimental.chat.system.transform with a miss leaves system intact");
