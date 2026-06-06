@@ -19,3 +19,19 @@ export function renderConvStateBlock(state: ConvStateRow): string {
     "</conversation-state>",
   ].join("\n");
 }
+
+// Canonical `<librarian>` awareness-primer block (spec 041 Decision 2).
+// The primer is an operator-authored note injected every harness turn
+// telling the agent it HAS durable memory + which verbs to use. This
+// renderer is BYTE-IDENTICAL across all five Librarian plugins
+// (claude/codex/hermes/opencode/pi) — a change here MUST land in
+// lockstep with every other plugin.
+//
+// Non-empty primer → exactly three `\n`-joined lines: the col-0
+// `<librarian>` open tag, the primer text VERBATIM (NOT indented — it's
+// prose, unlike conv-state's 2-space `key: value` fields), the col-0
+// `</librarian>` close tag. Empty primer → "" (no block).
+export function renderAwarenessPrimer(primer: string): string {
+  if (!primer) return "";
+  return ["<librarian>", primer, "</librarian>"].join("\n");
+}

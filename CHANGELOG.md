@@ -11,6 +11,21 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+### Added
+
+- **Awareness primer injected every turn (spec 041).** The
+  `experimental.chat.system.transform` hook now also emits a canonical
+  `<librarian>` block carrying the operator-authored awareness primer —
+  a short note reminding the agent it has durable, cross-session memory
+  and which verbs to use. It is read from the additive top-level
+  `primer` field of the single `conv_state_get` response (no second
+  fetch) and rendered byte-identically across all five Librarian
+  plugins. The conv-state block (when there is a row) comes first, then
+  the primer block (when non-empty); the primer is injected even when
+  there is no conv-state row. An empty/disabled primer emits no block,
+  and every error path stays fail-soft (the system prompt is left
+  unchanged).
+
 ### Changed
 
 - **Conv-state block trimmed to `conv_id` + `off_record` (lockstep).**
