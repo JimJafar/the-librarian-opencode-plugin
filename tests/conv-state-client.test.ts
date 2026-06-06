@@ -1,10 +1,14 @@
 // tests/conv-state-client.test.ts
 //
 // convStateGet wraps the existing MCP client with fail-soft null
-// coercion. These cases pin the parsing + error-collapse contract.
+// coercion. These cases pin the parsing + error-collapse contract,
+// adapted to the A2 (spec 041) JSON shape: conv_state_get now ALWAYS
+// returns JSON — `{ ...row, primer }` when a row exists, `{ primer }`
+// when not (the old "No conversation state" prose is gone). The client
+// surfaces both the row (when present) and the awareness primer.
 
 import { describe, expect, test } from "bun:test";
-import { createConvStateClient } from "../src/conv-state-client.ts";
+import { createConvStateClient, type ConvStateRow } from "../src/conv-state-client.ts";
 import { McpClientError, type McpClient } from "../src/mcp-client.ts";
 
 function fakeMcp(impl: (name: string, args: Record<string, unknown>) => Promise<string>): McpClient {
@@ -12,7 +16,7 @@ function fakeMcp(impl: (name: string, args: Record<string, unknown>) => Promise<
 }
 
 describe("convStateGet", () => {
-  test("returns the parsed row on a JSON hit", async () => {
+  test("returns the row and primer on a row+primer hit", async () => {
     const client = createConvStateClient(() =>
       fakeMcp(async (name, args) => {
         expect(name).toBe("conv_state_get");
@@ -20,21 +24,55 @@ describe("convStateGet", () => {
         return JSON.stringify({
           conv_id: "opencode:s_1",
           off_record: false,
+          primer: "PRIMER_TEXT",
         });
       }),
     );
-    const state = await client.convStateGet("opencode:s_1", 500);
-    expect(state).toEqual({
-      conv_id: "opencode:s_1",
-      off_record: false,
+    const result = await client.convStateGet("opencode:s_1", 500);
+    // `state` is the WHOLE parsed object — every top-level field
+    // (incl. the additive `primer`) rides through it verbatim.
+    expect(result).toEqual({
+      state: { conv_id: "opencode:s_1", off_record: false, primer: "PRIMER_TEXT" } as ConvStateRow,
+      primer: "PRIMER_TEXT",
     });
   });
 
-  test("returns null on the not-found prose response", async () => {
+  test("returns a null row but the primer on the no-row shape", async () => {
     const client = createConvStateClient(() =>
-      fakeMcp(async () => "No conversation state for conv_id opencode:s_1"),
+      fakeMcp(async () => JSON.stringify({ primer: "PRIMER_TEXT" })),
     );
-    expect(await client.convStateGet("opencode:s_1", 500)).toBeNull();
+    const result = await client.convStateGet("opencode:s_1", 500);
+    expect(result).toEqual({ state: null, primer: "PRIMER_TEXT" });
+  });
+
+  test("primer defaults to \"\" when the field is absent", async () => {
+    const client = createConvStateClient(() =>
+      fakeMcp(async () => JSON.stringify({ conv_id: "opencode:s_1", off_record: false })),
+    );
+    const result = await client.convStateGet("opencode:s_1", 500);
+    expect(result).toEqual({
+      state: { conv_id: "opencode:s_1", off_record: false },
+      primer: "",
+    });
+  });
+
+  test("primer defaults to \"\" when explicitly empty (disabled)", async () => {
+    const client = createConvStateClient(() =>
+      fakeMcp(async () => JSON.stringify({ primer: "" })),
+    );
+    const result = await client.convStateGet("opencode:s_1", 500);
+    expect(result).toEqual({ state: null, primer: "" });
+  });
+
+  test("primer defaults to \"\" when it is not a string", async () => {
+    const client = createConvStateClient(() =>
+      fakeMcp(async () => JSON.stringify({ conv_id: "opencode:s_1", primer: 42 })),
+    );
+    const result = await client.convStateGet("opencode:s_1", 500);
+    expect(result).toEqual({
+      state: { conv_id: "opencode:s_1", primer: 42 } as ConvStateRow,
+      primer: "",
+    });
   });
 
   test("returns null on non-JSON", async () => {
@@ -42,10 +80,8 @@ describe("convStateGet", () => {
     expect(await client.convStateGet("opencode:s_1", 500)).toBeNull();
   });
 
-  test("returns null on JSON without conv_id", async () => {
-    const client = createConvStateClient(() =>
-      fakeMcp(async () => JSON.stringify({ domain: "work" })),
-    );
+  test("returns null on a non-object JSON payload", async () => {
+    const client = createConvStateClient(() => fakeMcp(async () => JSON.stringify("just a string")));
     expect(await client.convStateGet("opencode:s_1", 500)).toBeNull();
   });
 
@@ -73,7 +109,7 @@ describe("convStateGet", () => {
     const timeouts: number[] = [];
     const client = createConvStateClient((timeoutMs) => {
       timeouts.push(timeoutMs);
-      return fakeMcp(async () => "No conversation state for x");
+      return fakeMcp(async () => JSON.stringify({ primer: "" }));
     });
     await client.convStateGet("opencode:s_1", 500);
     await client.convStateGet("opencode:s_1", 1000);

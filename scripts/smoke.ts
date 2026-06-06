@@ -4,8 +4,10 @@
 // End-to-end smoke: a mock Librarian HTTP server + the real exported
 // Plugin driven through synthetic opencode events. Asserts that the
 // `experimental.chat.system.transform` hook makes exactly one
-// `conv_state_get` call per turn and emits the canonical block when
-// the row exists.
+// `conv_state_get` call per turn and emits the canonical conv-state +
+// `<librarian>` awareness-primer blocks per the spec-041 (A2) JSON
+// response shape (`{ ...row, primer }` with a row, `{ primer }`
+// without).
 //
 // sessions-rethink PR 4 — the session lifecycle hooks
 // (`chat.message`, `session.created`, `session.idle`,
@@ -30,17 +32,13 @@ interface Call {
 
 const allCalls: Call[] = [];
 let convStatePayload: string | null = null;
-let convStateMiss = false;
 
 function mockResponse(tool: string, args: Record<string, unknown>): string {
   allCalls.push({ tool, args });
   if (tool !== "conv_state_get") return `(mock has no response for ${tool})`;
-  if (convStateMiss) {
-    return "No conversation state for conv_id opencode:s_smoke.";
-  }
-  return (
-    convStatePayload ?? "No conversation state for conv_id opencode:s_smoke."
-  );
+  // spec 041 (A2): conv_state_get always returns JSON. The no-row shape
+  // is `{ primer }` (with an empty primer = nothing to inject).
+  return convStatePayload ?? JSON.stringify({ primer: "" });
 }
 
 function startMock(): Promise<{ server: http.Server; url: string }> {
@@ -128,54 +126,63 @@ interface PluginInputStub {
       default: (input: PluginInputStub) => Promise<Record<string, unknown>>;
     };
 
-    console.log("Scenario 1: experimental.chat.system.transform with a hit appends the block");
+    const PRIMER =
+      "You have The Librarian: durable, cross-session memory. Use recall to check what's already known.";
+    const PRIMER_BLOCK = ["<librarian>", PRIMER, "</librarian>"].join("\n");
+
+    function newHandler() {
+      const hooks = plugin({ worktree: "/proj", directory: "/proj" }) as Promise<{
+        "experimental.chat.system.transform"?: (
+          i: { sessionID: string },
+          o: { system: string[] },
+        ) => Promise<void>;
+      }>;
+      return hooks;
+    }
+
+    console.log(
+      "Scenario 1: row + primer appends conv-state then byte-identical <librarian> block",
+    );
     {
-      const dir = freshTmp();
-      process.env.LIBRARIAN_PLUGIN_DATA = dir;
+      process.env.LIBRARIAN_PLUGIN_DATA = freshTmp();
       convStatePayload = JSON.stringify({
         conv_id: "opencode:s_smoke",
         harness: "opencode",
         off_record: false,
+        primer: PRIMER,
       });
-      convStateMiss = false;
       const from = snapshotCalls();
-      const hooks = (await plugin({ worktree: "/proj", directory: "/proj" })) as {
-        "experimental.chat.system.transform"?: (
-          i: { sessionID: string },
-          o: { system: string[] },
-        ) => Promise<void>;
-      };
+      const hooks = await newHandler();
       const handler = hooks["experimental.chat.system.transform"];
       assert(typeof handler === "function", "system.transform handler registered");
       const out = { system: ["BASE_SYSTEM"] };
-      await handler({ sessionID: "s_smoke" }, out);
+      await handler!({ sessionID: "s_smoke" }, out);
       const calls = callsSince(from);
       assert(calls.length === 1, "exactly one MCP call");
       assert(calls[0]!.tool === "conv_state_get", "called conv_state_get");
-      const block = out.system[1] ?? "";
-      assert(block.includes("<conversation-state>"), "block injected");
-      assert(block.includes("conv_id: opencode:s_smoke"), "block carries conv_id");
-      assert(block.includes("off_record: false"), "block carries off_record");
-      assert(!block.includes("domain:"), "block carries no retired domain line");
+      assert(out.system.length === 3, "both blocks injected");
+      const convBlock = out.system[1] ?? "";
+      assert(convBlock.includes("<conversation-state>"), "conv-state block injected first");
+      assert(convBlock.includes("conv_id: opencode:s_smoke"), "conv-state block carries conv_id");
+      assert(!convBlock.includes("domain:"), "conv-state block carries no retired domain line");
+      assert(out.system[2] === PRIMER_BLOCK, "byte-identical <librarian> block injected second");
     }
 
-    console.log("\nScenario 2: experimental.chat.system.transform with a miss leaves system intact");
+    console.log(
+      "\nScenario 2: no row + primer still emits the bare byte-identical <librarian> block",
+    );
     {
-      const dir = freshTmp();
-      process.env.LIBRARIAN_PLUGIN_DATA = dir;
-      convStateMiss = true;
-      convStatePayload = null;
+      process.env.LIBRARIAN_PLUGIN_DATA = freshTmp();
+      convStatePayload = JSON.stringify({ primer: PRIMER });
       const from = snapshotCalls();
-      const hooks = (await plugin({ worktree: "/proj", directory: "/proj" })) as {
-        "experimental.chat.system.transform"?: (
-          i: { sessionID: string },
-          o: { system: string[] },
-        ) => Promise<void>;
-      };
+      const hooks = await newHandler();
       const handler = hooks["experimental.chat.system.transform"]!;
       const out = { system: ["BASE_SYSTEM"] };
       await handler({ sessionID: "s_smoke" }, out);
-      assert(out.system.length === 1 && out.system[0] === "BASE_SYSTEM", "no block injected");
+      assert(
+        out.system.length === 2 && out.system[1] === PRIMER_BLOCK,
+        "only the bare <librarian> block injected (no conv-state block)",
+      );
       const calls = callsSince(from);
       assert(
         calls.length === 1 && calls[0]!.tool === "conv_state_get",
@@ -183,7 +190,18 @@ interface PluginInputStub {
       );
     }
 
-    console.log("\nScenario 3: plugin init installed the four command files");
+    console.log("\nScenario 3: no row + empty primer leaves system intact");
+    {
+      process.env.LIBRARIAN_PLUGIN_DATA = freshTmp();
+      convStatePayload = JSON.stringify({ primer: "" });
+      const hooks = await newHandler();
+      const handler = hooks["experimental.chat.system.transform"]!;
+      const out = { system: ["BASE_SYSTEM"] };
+      await handler({ sessionID: "s_smoke" }, out);
+      assert(out.system.length === 1 && out.system[0] === "BASE_SYSTEM", "no block injected");
+    }
+
+    console.log("\nScenario 4: plugin init installed the four command files");
     {
       const expected = ["handoff.md", "takeover.md", "learn.md", "toggle-private.md"];
       for (const file of expected) {
