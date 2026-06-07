@@ -11,6 +11,19 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-06-07
+
+### Fixed
+
+- **Declare a server-only `oc-plugin` target.** 0.3.1 declared
+  `oc-plugin: ["server", "tui"]`, but this plugin ships no terminal-UI module
+  (no `@opencode-ai/plugin/tui` export / `@opentui` components) — it's a
+  server-side `system.transform` hook. Declaring a `tui` target it can't satisfy
+  made OpenCode's **in-app** installer fail with _"Package has no tui target to
+  load in this app."_ (The `opencode plugin -g` CLI install tolerated it.)
+  Declared `oc-plugin: ["server"]` — the correct target for a hooks-only plugin —
+  so the in-app install path works too.
+
 ## [0.3.1] — 2026-06-07
 
 ### Fixed
