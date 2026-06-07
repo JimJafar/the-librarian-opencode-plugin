@@ -89,7 +89,7 @@ Once installed, type `/` in opencode to see four commands:
 | --- | --- |
 | `/handoff` | Author a five-section narrative and persist via `store_handoff` for cross-harness pickup |
 | `/takeover` | List candidate handoffs, atomically claim, inject the document |
-| `/learn` | Extract durable lessons from the conversation → `propose_memory` |
+| `/learn` | Extract durable lessons from the conversation → `remember` (protected categories still route to proposals) |
 | `/toggle-private` | Flip the `[librarian:private=on\|off]` marker — pure in-conversation, no server state, no hook |
 
 The four verbs are the same surface in every Librarian harness (Claude
