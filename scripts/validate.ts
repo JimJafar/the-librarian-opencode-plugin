@@ -31,6 +31,7 @@ interface PackageJson {
   type?: string;
   main?: string;
   exports?: unknown;
+  "oc-plugin"?: unknown;
   files?: string[];
   peerDependencies?: Record<string, string>;
 }
@@ -44,6 +45,11 @@ function checkPackageJson(): void {
   if (pkg.type !== "module") fail(`package.json: type must be "module" (ESM only)`);
   if (!pkg.main) fail(`package.json: main is required`);
   if (!pkg.exports) fail(`package.json: exports is required`);
+  if (!Array.isArray(pkg["oc-plugin"]) || pkg["oc-plugin"].length === 0) {
+    fail(
+      `package.json: "oc-plugin" must be a non-empty target array (e.g. ["server", "tui"]) so OpenCode >= 1.3.4 can load the plugin`,
+    );
+  }
   if (!pkg.files || !pkg.files.includes("src") || !pkg.files.includes("commands")) {
     fail(`package.json: files must include "src" and "commands"`);
   }

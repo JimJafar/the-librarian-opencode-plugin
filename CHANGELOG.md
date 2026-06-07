@@ -11,6 +11,17 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-06-07
+
+### Fixed
+
+- **Plugin now loads in OpenCode ≥ 1.3.4 (`oc-plugin` targets).** OpenCode 1.3.4
+  introduced and 1.3.8 enforces a required `"oc-plugin"` field in `package.json`
+  declaring which targets a plugin loads into; without it OpenCode fails with
+  _"Package has no tui target to load in this app."_ Declared
+  `"oc-plugin": ["server", "tui"]` so the plugin loads in both the TUI and the
+  server. `scripts/validate.ts` now asserts the field so it can't regress.
+
 ## [0.3.0] — 2026-06-07
 
 ### Added
