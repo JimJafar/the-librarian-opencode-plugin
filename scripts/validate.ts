@@ -47,7 +47,7 @@ function checkPackageJson(): void {
   if (!pkg.exports) fail(`package.json: exports is required`);
   if (!Array.isArray(pkg["oc-plugin"]) || pkg["oc-plugin"].length === 0) {
     fail(
-      `package.json: "oc-plugin" must be a non-empty target array (e.g. ["server", "tui"]) so OpenCode >= 1.3.4 can load the plugin`,
+      `package.json: "oc-plugin" must be a non-empty target array (e.g. ["server"] for a hooks-only plugin; "tui" requires shipping a @opencode-ai/plugin/tui UI module) so OpenCode >= 1.3.4 can load the plugin`,
     );
   }
   if (!pkg.files || !pkg.files.includes("src") || !pkg.files.includes("commands")) {
