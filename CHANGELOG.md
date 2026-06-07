@@ -11,6 +11,8 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-07
+
 ### Added
 
 - **Awareness primer injected every turn (spec 041).** The
@@ -198,5 +200,7 @@ Initial public release. An [opencode](https://opencode.ai) plugin for
   wrapper is being retired in a coordinated follow-up PR on the
   main repo.
 
-[Unreleased]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/JimJafar/the-librarian-opencode-plugin/releases/tag/v0.1.0
