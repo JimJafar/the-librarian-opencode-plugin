@@ -1,0 +1,90 @@
+name: Release
+
+# The "every merge to main IS a release" model (ported from the-librarian).
+# When a PR that bumped package.json lands on main, this cuts the matching tag +
+# GitHub release AND publishes to npm — all in one pass. Idempotent: a push
+# whose version is already tagged is a clean no-op.
+#
+# npm publish runs inline here (not via publish.yml) because a tag pushed with
+# the default GITHUB_TOKEN does not trigger the tag-listening publish workflow
+# (GitHub's anti-recursion rule). publish.yml is kept for manual recovery
+# (workflow_dispatch) and for any hand-pushed tag.
+#
+# Requires repo secret: NPM_TOKEN (npm Automation token, read-and-write).
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  # npm provenance — attests this package came from this CI run.
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag + GitHub release + npm publish on version bump
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Read version from package.json
+        id: ver
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Has this version already been released?
+        id: check
+        run: |
+          if git rev-parse "v${{ steps.ver.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "v${{ steps.ver.outputs.version }} is already tagged — nothing to release."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate release hygiene
+        if: steps.check.outputs.exists == 'false'
+        run: node scripts/check-release.mjs
+
+      - name: Extract release notes from CHANGELOG
+        if: steps.check.outputs.exists == 'false'
+        run: node scripts/check-release.mjs --notes > "${{ runner.temp }}/notes.md"
+
+      - name: Create annotated tag + GitHub release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          V: v${{ steps.ver.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$V" -m "$V"
+          git push origin "$V"
+          gh release create "$V" --title "$V" --notes-file "${{ runner.temp }}/notes.md"
+
+      - name: Publish to npm
+        if: steps.check.outputs.exists == 'false'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          bun install --frozen-lockfile
+          npm publish --access public --provenance
+          echo "Published v${{ steps.ver.outputs.version }} to npm."

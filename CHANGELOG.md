@@ -9,7 +9,7 @@ This changelog starts at v0.1.0 — the first version likely to see public
 adoption. The pre-v0.1.0 development history lives in the git log; only
 changes from this point forward are catalogued here.
 
-## [Unreleased]
+## [0.3.3] — 2026-06-08
 
 ### Changed
 
@@ -20,6 +20,11 @@ changes from this point forward are catalogued here.
   directly (deduped/merged) while the server still routes protected categories
   (identity, relationship) to the proposal queue. Coordinated with the server
   fix that routes `propose_memory` through the curator (the-librarian ADR 0004).
+- **Release process automated — every merge to `main` is a release.** Added
+  `.github/workflows/release.yml` (tags, publishes the GitHub release, and runs
+  `npm publish` on a version-bumping merge) and a `scripts/check-release.mjs`
+  guard wired into CI. The CHANGELOG no longer carries an `[Unreleased]` section;
+  every PR bumps `package.json` with a dated entry.
 
 ## [0.3.2] — 2026-06-07
 
@@ -234,7 +239,9 @@ Initial public release. An [opencode](https://opencode.ai) plugin for
   wrapper is being retired in a coordinated follow-up PR on the
   main repo.
 
-[Unreleased]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.3.0...HEAD
+[0.3.3]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.3.2...v0.3.3
+[0.3.2]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/JimJafar/the-librarian-opencode-plugin/releases/tag/v0.1.0
