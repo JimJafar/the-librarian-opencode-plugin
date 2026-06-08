@@ -1,6 +1,6 @@
 {
   "name": "the-librarian-opencode-plugin",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "opencode plugin for The Librarian: durable memory + cross-harness handoffs over a remote Librarian MCP server.",
   "license": "Apache-2.0",
   "author": {
@@ -24,7 +24,8 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "validate": "bun scripts/validate.ts",
-    "smoke": "bun scripts/smoke.ts"
+    "smoke": "bun scripts/smoke.ts",
+    "check:release": "node --no-warnings scripts/check-release.mjs"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": "*"
