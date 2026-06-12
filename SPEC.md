@@ -15,9 +15,9 @@ Status: **draft, awaiting human approval** before Phase 2 (Plan).
 Give opencode the same Librarian feature surface the other four plugins
 give their harnesses:
 
-- the Librarian **memory + session MCP tools** (`recall`, `remember`,
-  `verify_memory`, `start_session`, `checkpoint_session`, …) over the
-  user's remote endpoint, via opencode's native `mcpServers` config;
+- the Librarian **memory MCP tools** (`recall`, `remember`,
+  `flag_memory`) over the user's remote endpoint, via opencode's native
+  `mcpServers` config;
 - the seven canonical **`/lib-session-*` slash commands**, written by
   the plugin to `~/.config/opencode/commands/` on first
   `session.created`. Empirical Task-0 investigation confirmed

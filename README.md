@@ -12,11 +12,12 @@ Sibling plugins:
 
 It gives opencode:
 
-- the Librarian **memory MCP tools** (`recall`, `remember`, `propose_memory`,
-  `verify_memory`, `update_memory`, `list_proposals`) over your remote
-  endpoint, via opencode's native `mcpServers` config;
+- the Librarian **memory MCP tools** (`recall`, `remember`, `flag_memory`)
+  over your remote endpoint, via opencode's native `mcpServers` config;
 - the **handoff MCP tools** (`store_handoff`, `list_handoffs`,
   `claim_handoff`) for atomic cross-harness handover;
+- the **skill + reference tools** (`list_skills`, `get_skill`,
+  `search_references`) for discovering and pulling shared agent skills;
 - four **slash commands** auto-installed on first run: `/handoff`,
   `/takeover`, `/learn`, `/toggle-private`;
 - a **per-turn conv-state injection hook** (`experimental.chat.system.transform`)

@@ -9,6 +9,24 @@ This changelog starts at v0.1.0 — the first version likely to see public
 adoption. The pre-v0.1.0 development history lives in the git log; only
 changes from this point forward are catalogued here.
 
+## [0.4.0] — 2026-06-12
+
+### Changed
+
+- **Docs aligned to the 9-verb agent-facing MCP surface (the-librarian
+  ADR 0006).** The agent-facing surface is now `recall`, `remember`,
+  `flag_memory`, `store_handoff`, `list_handoffs`, `claim_handoff`,
+  `list_skills`, `get_skill`, `search_references` (plus the internal
+  `conv_state_*` primer). README, SPEC, and the `/toggle-private` command
+  doc no longer reference the retired verbs: `verify_memory` is replaced
+  by `flag_memory` (flag a wrong/misleading/outdated memory; routed to
+  review), `propose_memory` is folded into `remember`, the per-turn
+  `conv_state_get` primer covers what `start_context` used to, and
+  `session_manifest` / `find_skills` are replaced by `list_skills`. The
+  README now also documents the `list_skills` / `get_skill` /
+  `search_references` skill + reference tools. Docs-only — no runtime or
+  API change.
+
 ## [0.3.3] — 2026-06-08
 
 ### Changed
@@ -239,6 +257,7 @@ Initial public release. An [opencode](https://opencode.ai) plugin for
   wrapper is being retired in a coordinated follow-up PR on the
   main repo.
 
+[0.4.0]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/JimJafar/the-librarian-opencode-plugin/compare/v0.3.0...v0.3.1
