@@ -1,6 +1,6 @@
 {
   "name": "the-librarian-opencode-plugin",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "opencode plugin for The Librarian: durable memory + cross-harness handoffs over a remote Librarian MCP server.",
   "license": "Apache-2.0",
   "author": {
