@@ -1,3 +1,21 @@
+<!-- librarian-archive-banner -->
+> [!CAUTION]
+> **This repository is archived and no longer maintained.**
+>
+> The Librarian's **OpenCode** integration now lives in the main monorepo —
+> **[JimJafar/the-librarian](https://github.com/JimJafar/the-librarian)**.
+> Install and manage every harness integration with one CLI:
+>
+> ```sh
+> npm i -g @the-librarian/cli
+> librarian install opencode
+> ```
+>
+> Please don't open issues or PRs here — this repo is read-only. See the
+> monorepo for current docs, the full integration set, and releases.
+
+---
+
 # the-librarian-opencode-plugin
 
 An **[opencode](https://opencode.ai) plugin** for
